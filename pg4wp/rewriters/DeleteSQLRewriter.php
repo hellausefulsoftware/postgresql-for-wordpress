@@ -26,27 +26,29 @@ class DeleteSQLRewriter extends AbstractSQLRewriter
                 "WHERE o1.option_name = o2.option_name " .
                 "AND o1.option_id < o2.option_id)";
         }
-        // Rewrite _transient_timeout multi-table delete query
-        elseif(0 === strpos($sql, 'DELETE a, b FROM wp_options a, wp_options b')) {
+        // Rewrite _transient_timeout multi-table delete query for wp_options
+        elseif(preg_match('/DELETE a, b FROM (\w+_options) a, \1 b/i', $sql, $matches)) {
+            $table_name = $matches[1]; // Captured table name with prefix
             $where = substr($sql, strpos($sql, 'WHERE ') + 6);
             $where = rtrim($where, " \t\n\r;");
             // Fix string/number comparison by adding check and cast
             $where = str_replace('AND b.option_value', 'AND b.option_value ~ \'^[0-9]+$\' AND CAST(b.option_value AS BIGINT)', $where);
             // Mirror WHERE clause to delete both sides of self-join.
             $where2 = strtr($where, array('a.' => 'b.', 'b.' => 'a.'));
-            $sql = 'DELETE FROM wp_options a USING wp_options b WHERE ' .
+            $sql = "DELETE FROM {$table_name} a USING {$table_name} b WHERE " .
                 '(' . $where . ') OR (' . $where2 . ');';
         }
 
-        // Rewrite _transient_timeout multi-table delete query
-        elseif(0 === strpos($sql, 'DELETE a, b FROM wp_sitemeta a, wp_sitemeta b')) {
+        // Rewrite _transient_timeout multi-table delete query for wp_sitemeta
+        elseif(preg_match('/DELETE a, b FROM (\w+_sitemeta) a, \1 b/i', $sql, $matches)) {
+            $table_name = $matches[1]; // Captured table name with prefix
             $where = substr($sql, strpos($sql, 'WHERE ') + 6);
             $where = rtrim($where, " \t\n\r;");
             // Fix string/number comparison by adding check and cast
             $where = str_replace('AND b.meta_value', 'AND b.meta_value ~ \'^[0-9]+$\' AND CAST(b.meta_value AS BIGINT)', $where);
             // Mirror WHERE clause to delete both sides of self-join.
             $where2 = strtr($where, array('a.' => 'b.', 'b.' => 'a.'));
-            $sql = 'DELETE FROM wp_sitemeta a USING wp_sitemeta b WHERE ' .
+            $sql = "DELETE FROM {$table_name} a USING {$table_name} b WHERE " .
                 '(' . $where . ') OR (' . $where2 . ');';
         }
 
