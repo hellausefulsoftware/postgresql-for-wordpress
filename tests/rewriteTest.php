@@ -844,6 +844,26 @@ final class rewriteTest extends TestCase
         $postgresql = pg4wp_rewrite($sql);
         $this->assertSame(trim($expected), trim($postgresql));
     }
+    
+    public function test_it_handles_multi_table_delete_with_join() 
+    {
+        $sql = "DELETE a, b FROM wp_posts a JOIN wp_postmeta b ON a.ID = b.post_id WHERE a.post_type = 'revision'";
+        
+        $expected = "DELETE FROM wp_posts a USING wp_postmeta b WHERE a.ID = b.post_id AND a.post_type = 'revision';";
+        
+        $postgresql = pg4wp_rewrite($sql);
+        $this->assertSame(trim($expected), trim($postgresql));
+    }
+
+    public function test_it_handles_multi_table_delete_with_alias() 
+    {
+        $sql = "DELETE a, b FROM `wp_posts` a, `wp_postmeta` b WHERE a.ID = b.post_id AND a.post_type = 'revision'";
+        
+        $expected = "DELETE FROM wp_posts a USING wp_postmeta b WHERE a.ID = b.post_id AND a.post_type = 'revision';";
+        
+        $postgresql = pg4wp_rewrite($sql);
+        $this->assertSame(trim($expected), trim($postgresql));
+    }
    
 
     protected function setUp(): void
