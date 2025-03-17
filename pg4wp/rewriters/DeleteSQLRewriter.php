@@ -27,26 +27,28 @@ class DeleteSQLRewriter extends AbstractSQLRewriter
                 "AND o1.option_id < o2.option_id)";
         }
         // Rewrite _transient_timeout multi-table delete query
-        elseif(0 === strpos($sql, 'DELETE a, b FROM wp_options a, wp_options b')) {
+        elseif(0 === strpos($sql, 'DELETE a, b FROM wp_options a, wp_options b') || 
+               0 === strpos($sql, "DELETE a, b FROM {$wpdb->prefix}options a, {$wpdb->prefix}options b")) {
             $where = substr($sql, strpos($sql, 'WHERE ') + 6);
             $where = rtrim($where, " \t\n\r;");
             // Fix string/number comparison by adding check and cast
             $where = str_replace('AND b.option_value', 'AND b.option_value ~ \'^[0-9]+$\' AND CAST(b.option_value AS BIGINT)', $where);
             // Mirror WHERE clause to delete both sides of self-join.
             $where2 = strtr($where, array('a.' => 'b.', 'b.' => 'a.'));
-            $sql = 'DELETE FROM wp_options a USING wp_options b WHERE ' .
+            $sql = "DELETE FROM {$wpdb->options} a USING {$wpdb->options} b WHERE " .
                 '(' . $where . ') OR (' . $where2 . ');';
         }
 
         // Rewrite _transient_timeout multi-table delete query
-        elseif(0 === strpos($sql, 'DELETE a, b FROM wp_sitemeta a, wp_sitemeta b')) {
+        elseif(0 === strpos($sql, 'DELETE a, b FROM wp_sitemeta a, wp_sitemeta b') || 
+               0 === strpos($sql, "DELETE a, b FROM {$wpdb->prefix}sitemeta a, {$wpdb->prefix}sitemeta b")) {
             $where = substr($sql, strpos($sql, 'WHERE ') + 6);
             $where = rtrim($where, " \t\n\r;");
             // Fix string/number comparison by adding check and cast
             $where = str_replace('AND b.meta_value', 'AND b.meta_value ~ \'^[0-9]+$\' AND CAST(b.meta_value AS BIGINT)', $where);
             // Mirror WHERE clause to delete both sides of self-join.
             $where2 = strtr($where, array('a.' => 'b.', 'b.' => 'a.'));
-            $sql = 'DELETE FROM wp_sitemeta a USING wp_sitemeta b WHERE ' .
+            $sql = "DELETE FROM {$wpdb->prefix}sitemeta a USING {$wpdb->prefix}sitemeta b WHERE " .
                 '(' . $where . ') OR (' . $where2 . ');';
         }
 
